@@ -3,13 +3,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:ktmobileapp/services/backend_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:intl/intl.dart';
 
+import '../components/enterprise_drawer.dart';
+import '../services/auth_service.dart';
 import 'login_page.dart';
-import 'member_page.dart';
-import 'sale_page.dart';
 
 class EnterprisePage extends StatefulWidget {
   const EnterprisePage({Key? key}) : super(key: key);
@@ -22,19 +23,44 @@ class _EnterprisePageState extends State<EnterprisePage> {
   final _entFormKey = GlobalKey<FormState>();
   final TextEditingController _saleDate = TextEditingController();
   final TextEditingController _saleAmount = TextEditingController();
-  late String _name;
+
+  late String _username;
   late String _entname;
   late int _entid;
   late String _token;
 
+  String? plants;
+  String? members;
+
+  bool isLoading = true;
+
   Future<void> getSharedPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _name = prefs.getString("username")!;
+      _username = prefs.getString("username")!;
       _entname = prefs.getString("enterprisename")!;
       _entid = prefs.getInt("enterpriseid")!;
       _token = prefs.getString("token")!;
     });
+    // Get member and plant belongs to the enterprise
+
+    // Set _plants and _ members
+  }
+
+  Future<String?> getSales() async {
+    var url = Uri.parse(apiURL + 'sales/$_entid');
+
+    var response = await http.get(url, headers: {
+      HttpHeaders.contentTypeHeader: 'application/json',
+    });
+
+    print(response.statusCode);
+
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      return null;
+    }
   }
 
   @override
@@ -50,59 +76,54 @@ class _EnterprisePageState extends State<EnterprisePage> {
         title: const Text('แจ้งความต้องการขายพืชกระท่อม'),
         centerTitle: true,
         actions: [
-          IconButton(
-              onPressed: () {
-                logout();
-              },
-              icon: const Icon(Icons.logout))
+          PopupMenuButton(
+            icon: const Icon(Icons.person),
+            itemBuilder: (context) {
+              return [
+                const PopupMenuItem(value: 2, child: Text('ออกจากระบบ')),
+              ];
+            },
+            onSelected: (value) async {
+              if (value == 2) {
+                var response = await logout(_token);
+                if (response.statusCode == 200) {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ));
+                }
+              }
+            },
+          ),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            createDrawerHeader(),
-            ListTile(
-              leading: const Icon(Icons.shopping_cart_outlined),
-              title: const Text('แจ้งความต้องการขาย'),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.shopping_bag_outlined),
-              title: const Text('รายการแจ้งความต้องการขาย'),
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SalePage(),
-                    ));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group),
-              title: const Text('สมาชิกในกลุ่ม'),
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MemberPage(),
-                    ));
-              },
-            ),
-          ],
-        ),
-      ),
-      body: Center(
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.8,
-          margin: const EdgeInsets.all(32),
-          child: Form(
-            key: _entFormKey,
-            child: ListView(
+      drawer: createEnterpriseDrawer(context, _username, _entname),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            margin: const EdgeInsets.all(8),
+            child: Column(
               children: [
-                saleDateInput(),
-                saleAmountInput(),
+                summaryCard(),
+                inputForm(),
                 saveForm(),
+                const Divider(),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      'รายการแจ้งความต้องการขาย',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                showSaleList(),
               ],
             ),
           ),
@@ -111,9 +132,159 @@ class _EnterprisePageState extends State<EnterprisePage> {
     );
   }
 
+  Widget showSaleList() {
+    return FutureBuilder(
+      future: getSales(),
+      builder: (context, snapshot) {
+        List<Widget> myList = [];
+
+        if (snapshot.hasData) {
+          var jsonString = jsonDecode(snapshot.data.toString());
+          List? sales = jsonString['payload'];
+
+          if (sales!.isEmpty) {
+            myList = [
+              const Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: Text(
+                  'ไม่พบข้อมูล',
+                  style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20),
+                ),
+              )
+            ];
+          } else {
+            myList = [
+              Column(
+                children: sales.map((item) {
+                  DateTime parsedCreatedDate =
+                      DateTime.parse(item['created_at']);
+                  DateTime parsedSellDate =
+                      DateTime.parse(item['date_for_sell']);
+                  var createdDate =
+                      DateFormat('dd/MM/yyyy').format(parsedCreatedDate);
+                  var sellDate =
+                      DateFormat('dd/MM/yyyy').format(parsedSellDate);
+                  return SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Text(createdDate.toString()),
+                            Column(
+                              children: [
+                                const Text('วันที่ต้องการขาย'),
+                                Text(sellDate.toString()),
+                              ],
+                            ),
+                            Column(
+                              children: [
+                                const Text('จำนวนที่ต้องการขาย'),
+                                Text(item['quantity_for_sell'].toString() +
+                                    ' กิโลกรัม'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ];
+          }
+        } else if (snapshot.connectionState == ConnectionState.waiting) {
+          myList = [
+            const SizedBox(
+              child: CircularProgressIndicator(),
+              width: 60,
+              height: 60,
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Text('อยู่ระหว่างประมวลผล'),
+            )
+          ];
+        }
+
+        return Center(
+          child: Column(
+            children: myList,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget summaryCard() {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          enterpriseCard('จำนวนสมาชิก', 50.toString(), 'คน', Colors.blue[200]),
+          enterpriseCard(
+              'จำนวนต้นกระท่อม', 130.toString(), 'ต้น', Colors.lightGreen[100]),
+        ],
+      ),
+    );
+  }
+
+  Widget enterpriseCard(String str, String? amount, String unit, Color? color) {
+    return Card(
+      color: color,
+      child: Container(
+        width: 180,
+        height: 120,
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(str,
+                style: TextStyle(
+                  fontWeight: FontWeight.w300,
+                  fontSize: 16,
+                  color: Colors.blue[900],
+                )),
+            const SizedBox(height: 16),
+            Text(
+              amount!,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [Text(unit)],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget inputForm() {
+    return Form(
+        key: _entFormKey,
+        child: Column(
+          children: [
+            saleDateInput(),
+            saleAmountInput(),
+          ],
+        ));
+  }
+
   saleDateInput() {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(8),
       child: TextFormField(
         controller: _saleDate,
         readOnly: true,
@@ -133,22 +304,22 @@ class _EnterprisePageState extends State<EnterprisePage> {
                 return _alertDialog;
               });
         },
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(
+        decoration: InputDecoration(
+          suffixIcon: const Icon(Icons.calendar_month_outlined),
+          border: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(16)),
-            borderSide: BorderSide(color: Colors.blue, width: 2),
           ),
-          enabledBorder: OutlineInputBorder(
+          enabledBorder: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(16)),
-            borderSide: BorderSide(color: Colors.blue, width: 2),
+            borderSide: BorderSide(color: Colors.green),
           ),
-          errorBorder: OutlineInputBorder(
+          errorBorder: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(16)),
-            borderSide: BorderSide(color: Colors.red, width: 2),
+            borderSide: BorderSide(color: Colors.red),
           ),
           label: Text(
             'วันที่ต้องการขาย',
-            style: TextStyle(color: Colors.blue),
+            style: TextStyle(color: Colors.green[800]),
           ),
         ),
       ),
@@ -164,8 +335,8 @@ class _EnterprisePageState extends State<EnterprisePage> {
 
   Widget datePicker() {
     return SizedBox(
-      height: MediaQuery.of(context).size.width * 0.5,
-      width: MediaQuery.of(context).size.height * 0.5,
+      height: MediaQuery.of(context).size.height * 0.8,
+      width: MediaQuery.of(context).size.width * 0.8,
       child: SfDateRangePicker(
         showNavigationArrow: true,
         showActionButtons: true,
@@ -189,7 +360,7 @@ class _EnterprisePageState extends State<EnterprisePage> {
 
   saleAmountInput() {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(8),
       child: TextFormField(
         controller: _saleAmount,
         keyboardType: TextInputType.number,
@@ -199,23 +370,23 @@ class _EnterprisePageState extends State<EnterprisePage> {
           }
           return null;
         },
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(16)),
-            borderSide: BorderSide(color: Colors.blue, width: 2),
           ),
-          enabledBorder: OutlineInputBorder(
+          enabledBorder: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(16)),
-            borderSide: BorderSide(color: Colors.blue, width: 2),
+            borderSide: BorderSide(color: Colors.green),
           ),
-          errorBorder: OutlineInputBorder(
+          errorBorder: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(16)),
-            borderSide: BorderSide(color: Colors.red, width: 2),
+            borderSide: BorderSide(color: Colors.green),
           ),
           label: Text(
-            'ปริมาณที่ต้องการขาย (กิโลกรัม)',
-            style: TextStyle(color: Colors.blue),
+            'ปริมาณที่ต้องการขาย',
+            style: TextStyle(color: Colors.green[800]),
           ),
+          suffixText: 'กิโลกรัม',
         ),
       ),
     );
@@ -261,8 +432,7 @@ class _EnterprisePageState extends State<EnterprisePage> {
               "saleAmount": _saleAmount.text,
             });
 
-            var url = Uri.parse(
-                'https://kt-laravel-backend.herokuapp.com/api/addsales/$_entid');
+            var url = Uri.parse(apiURL + 'addsales/$_entid');
 
             var response = await http.post(url, body: json, headers: {
               HttpHeaders.contentTypeHeader: "application/json",
@@ -272,42 +442,5 @@ class _EnterprisePageState extends State<EnterprisePage> {
         },
       ),
     );
-  }
-
-  DrawerHeader createDrawerHeader() {
-    return DrawerHeader(
-      decoration: const BoxDecoration(
-        color: Colors.lightBlue,
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            bottom: 36.0,
-            left: 16.0,
-            child: Text(_name),
-          ),
-          Positioned(
-            bottom: 12.0,
-            left: 16.0,
-            child: Text('กลุ่มที่ดูแล: $_entname'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void logout() async {
-    var url = Uri.parse('https://kt-laravel-backend.herokuapp.com/api/logout');
-    var response = await http.post(url, headers: {
-      HttpHeaders.contentTypeHeader: 'application/json',
-      HttpHeaders.authorizationHeader: 'Bearer $_token',
-    });
-    if (response.statusCode == 200) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const LoginPage(),
-          ));
-    }
   }
 }

@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:ktmobileapp/screens/sale_page.dart';
+
+import 'package:ktmobileapp/services/backend_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:http/http.dart' as http;
 
-import 'enterprise_page.dart';
+import '../components/enterprise_drawer.dart';
+import '../services/auth_service.dart';
 import 'login_page.dart';
 
 class MemberPage extends StatefulWidget {
@@ -18,7 +20,7 @@ class MemberPage extends StatefulWidget {
 }
 
 class _MemberPageState extends State<MemberPage> {
-  late String _name;
+  late String _username;
   late String _entname;
   late String _token;
   late int _entid;
@@ -26,7 +28,7 @@ class _MemberPageState extends State<MemberPage> {
   Future<void> getSharedPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _name = prefs.getString("username")!;
+      _username = prefs.getString("username")!;
       _entname = prefs.getString("enterprisename")!;
       _entid = prefs.getInt("enterpriseid")!;
       _token = prefs.getString("token")!;
@@ -34,8 +36,7 @@ class _MemberPageState extends State<MemberPage> {
   }
 
   Future<String?> getMembers() async {
-    var url = Uri.parse(
-        'https://kt-laravel-backend.herokuapp.com/api/members/$_entid');
+    var url = Uri.parse(apiURL + 'members/$_entid');
 
     var response = await http.get(url, headers: {
       HttpHeaders.contentTypeHeader: 'application/json',
@@ -61,47 +62,29 @@ class _MemberPageState extends State<MemberPage> {
         title: const Text('สมาชิกในกลุ่ม'),
         centerTitle: true,
         actions: [
-          IconButton(
-              onPressed: () {
-                logout();
-              },
-              icon: const Icon(Icons.logout))
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            createDrawerHeader(),
-            ListTile(
-              leading: const Icon(Icons.shopping_cart_outlined),
-              title: const Text('แจ้งความต้องการขาย'),
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const EnterprisePage(),
-                    ));
-              },
-            ),
-            ListTile(
-                leading: const Icon(Icons.shopping_bag_outlined),
-                title: const Text('รายการแจ้งความต้องการขาย'),
-                onTap: () {
+          PopupMenuButton(
+            icon: const Icon(Icons.person),
+            itemBuilder: (context) {
+              return [
+                const PopupMenuItem(value: 2, child: Text('ออกจากระบบ')),
+              ];
+            },
+            onSelected: (value) async {
+              if (value == 2) {
+                var response = await logout(_token);
+                if (response.statusCode == 200) {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const SalePage(),
+                        builder: (context) => const LoginPage(),
                       ));
-                }),
-            ListTile(
-              leading: const Icon(Icons.group),
-              title: const Text('สมาชิกในกลุ่ม'),
-              onTap: () {},
-            ),
-          ],
-        ),
+                }
+              }
+            },
+          ),
+        ],
       ),
+      drawer: createEnterpriseDrawer(context, _username, _entname),
       body: showMemberList(),
     );
   }
@@ -130,15 +113,35 @@ class _MemberPageState extends State<MemberPage> {
                       padding: const EdgeInsets.all(8.0),
                       child: Column(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(
-                              '${item['name']}',
-                              style: const TextStyle(
-                                  color: Colors.green,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold),
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  '${item['name']}',
+                                  style: const TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.phone),
+                                    Text(
+                                      '${item['tel']}',
+                                      style: const TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                           const Divider(),
                           Row(
@@ -158,20 +161,20 @@ class _MemberPageState extends State<MemberPage> {
                                   ],
                                 ),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.phone),
-                                    Text(
-                                      item['tel'].toString(),
-                                      softWrap: true,
-                                      style: TextStyle(color: Colors.grey[700]),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              // Padding(
+                              //   padding: const EdgeInsets.all(8.0),
+                              //   child: Row(
+                              //     mainAxisAlignment: MainAxisAlignment.center,
+                              //     children: [
+                              //       const Icon(Icons.phone),
+                              //       Text(
+                              //         item['tel'].toString(),
+                              //         softWrap: true,
+                              //         style: TextStyle(color: Colors.grey[700]),
+                              //       ),
+                              //     ],
+                              //   ),
+                              // ),
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Row(
@@ -228,7 +231,7 @@ class _MemberPageState extends State<MemberPage> {
           Positioned(
             bottom: 36.0,
             left: 16.0,
-            child: Text(_name),
+            child: Text(_username),
           ),
           Positioned(
             bottom: 12.0,
@@ -238,21 +241,5 @@ class _MemberPageState extends State<MemberPage> {
         ],
       ),
     );
-  }
-
-  void logout() async {
-    var url = Uri.parse('https://kt-laravel-backend.herokuapp.com/api/logout');
-    var response = await http.post(url, headers: {
-      HttpHeaders.contentTypeHeader: 'application/json',
-      HttpHeaders.authorizationHeader: 'Bearer $_token',
-    });
-
-    if (response.statusCode == 200) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const LoginPage(),
-          ));
-    }
   }
 }

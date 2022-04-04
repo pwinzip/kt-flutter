@@ -189,6 +189,9 @@ class _LoginPageState extends State<LoginPage> {
             var response =
                 await login(_telController.text, _passController.text);
 
+            print(response.statusCode);
+            print(response.body);
+
             if (response.statusCode == 200) {
               setState(() {
                 errText = null;

@@ -2,14 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:ktmobileapp/screens/plant_page.dart';
 import 'package:ktmobileapp/services/backend_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:intl/intl.dart';
 
-import '../components/appbar.dart';
+import '../components/farmer_drawer.dart';
 import '../services/auth_service.dart';
 import 'login_page.dart';
 
@@ -60,7 +59,7 @@ class _FarmerPageState extends State<FarmerPage> {
 
     print(response.statusCode);
     print(response.body);
-    // _remainAmount.text = jsonDecode(response.body)['remain'].toString();
+
     setState(() {
       _remainPlants = jsonDecode(response.body)['remain'].toString();
       _addonPlants = jsonDecode(response.body)['addon'].toString();
