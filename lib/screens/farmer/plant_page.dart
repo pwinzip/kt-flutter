@@ -1,16 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ktmobileapp/screens/login_page.dart';
 import 'package:ktmobileapp/services/backend_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:http/http.dart' as http;
-
-import '../components/farmer_drawer.dart';
-import '../services/auth_service.dart';
+import '../../components/farmer_drawer.dart';
+import '../../services/auth_service.dart';
 
 class PlantPage extends StatefulWidget {
   const PlantPage({Key? key}) : super(key: key);
@@ -39,19 +35,14 @@ class _PlantPageState extends State<PlantPage> {
     });
   }
 
-  Future<String?> getList() async {
-    var url = Uri.parse(apiURL + 'farmerplants/$_farmerid');
-
-    var response = await http.get(url, headers: {
-      HttpHeaders.contentTypeHeader: 'application/json',
-    });
+  Future<String?> getPlantList() async {
+    var response = await getAllPlants(_farmerid, _token);
 
     print(response.statusCode);
 
     if (response.statusCode == 200) {
       return response.body;
     } else {
-      print(response.statusCode);
       return null;
     }
   }
@@ -102,7 +93,7 @@ class _PlantPageState extends State<PlantPage> {
 
   showPlantList() {
     return FutureBuilder(
-      future: getList(),
+      future: getPlantList(),
       builder: (context, snapshot) {
         List<Widget> myList = [];
 

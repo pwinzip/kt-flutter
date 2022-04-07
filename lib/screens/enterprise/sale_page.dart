@@ -3,13 +3,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:ktmobileapp/services/backend_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:http/http.dart' as http;
 
-import 'enterprise_page.dart';
-import 'login_page.dart';
-import 'member_page.dart';
+import '../../components/enterprise_drawer.dart';
+import '../../services/auth_service.dart';
+import '../login_page.dart';
 
 class SalePage extends StatefulWidget {
   const SalePage({Key? key}) : super(key: key);
@@ -19,15 +20,15 @@ class SalePage extends StatefulWidget {
 }
 
 class _SalePageState extends State<SalePage> {
-  late String _name;
-  late String _entname;
-  late int _entid;
-  late String _token;
+  String? _username;
+  String? _entname;
+  int? _entid;
+  String? _token;
 
   Future<void> getSharedPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _name = prefs.getString("username")!;
+      _username = prefs.getString("username")!;
       _entname = prefs.getString("enterprisename")!;
       _entid = prefs.getInt("enterpriseid")!;
       _token = prefs.getString("token")!;
@@ -35,8 +36,7 @@ class _SalePageState extends State<SalePage> {
   }
 
   Future<String?> getSales() async {
-    var url =
-        Uri.parse('https://kt-laravel-backend.herokuapp.com/api/sales/$_entid');
+    var url = Uri.parse(apiURL + 'sales/$_entid');
 
     var response = await http.get(url, headers: {
       HttpHeaders.contentTypeHeader: 'application/json',
@@ -63,48 +63,36 @@ class _SalePageState extends State<SalePage> {
       appBar: AppBar(
         title: const Text('รายการต้องการขายพืชกระท่อม'),
         centerTitle: true,
+        automaticallyImplyLeading: true,
+        leading: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.arrow_back_ios_new_outlined)),
         actions: [
-          IconButton(
-              onPressed: () {
-                logout();
-              },
-              icon: const Icon(Icons.logout))
+          PopupMenuButton(
+            icon: const Icon(Icons.logout),
+            itemBuilder: (context) {
+              return [
+                const PopupMenuItem(value: 2, child: Text('ออกจากระบบ')),
+              ];
+            },
+            onSelected: (value) async {
+              if (value == 2) {
+                var response = await logout(_token!);
+                if (response.statusCode == 200) {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ));
+                }
+              }
+            },
+          ),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            createDrawerHeader(),
-            ListTile(
-              leading: const Icon(Icons.shopping_cart_outlined),
-              title: const Text('แจ้งความต้องการขาย'),
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const EnterprisePage(),
-                    ));
-              },
-            ),
-            ListTile(
-                leading: const Icon(Icons.shopping_bag_outlined),
-                title: const Text('รายการแจ้งความต้องการขาย'),
-                onTap: () {}),
-            ListTile(
-              leading: const Icon(Icons.group),
-              title: const Text('สมาชิกในกลุ่ม'),
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MemberPage(),
-                    ));
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: createEnterpriseDrawer(context, _username!, _entname!),
       body: showSaleList(),
     );
   }
@@ -202,7 +190,7 @@ class _SalePageState extends State<SalePage> {
           Positioned(
             bottom: 36.0,
             left: 16.0,
-            child: Text(_name),
+            child: Text(_username!),
           ),
           Positioned(
             bottom: 12.0,
@@ -212,20 +200,5 @@ class _SalePageState extends State<SalePage> {
         ],
       ),
     );
-  }
-
-  void logout() async {
-    var url = Uri.parse('https://kt-laravel-backend.herokuapp.com/api/logout');
-    var response = await http.post(url, headers: {
-      HttpHeaders.contentTypeHeader: 'application/json',
-      HttpHeaders.authorizationHeader: 'Bearer $_token',
-    });
-    if (response.statusCode == 200) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const LoginPage(),
-          ));
-    }
   }
 }

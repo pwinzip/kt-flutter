@@ -8,9 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:http/http.dart' as http;
 
-import '../components/enterprise_drawer.dart';
-import '../services/auth_service.dart';
-import 'login_page.dart';
+import '../../components/enterprise_drawer.dart';
+import '../../services/auth_service.dart';
+import '../login_page.dart';
 
 class MemberPage extends StatefulWidget {
   const MemberPage({Key? key}) : super(key: key);
@@ -131,12 +131,15 @@ class _MemberPageState extends State<MemberPage> {
                                 child: Row(
                                   children: [
                                     const Icon(Icons.phone),
-                                    Text(
-                                      '${item['tel']}',
-                                      style: const TextStyle(
-                                          color: Colors.green,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Text(
+                                        '${item['tel']}',
+                                        style: const TextStyle(
+                                            color: Colors.green,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w300),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -153,37 +156,32 @@ class _MemberPageState extends State<MemberPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     const Icon(Icons.place),
-                                    Text(
-                                      item['address'].toString(),
-                                      softWrap: true,
-                                      style: TextStyle(color: Colors.grey[700]),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Text(
+                                        item['address'].toString(),
+                                        softWrap: true,
+                                        style:
+                                            TextStyle(color: Colors.grey[700]),
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                              // Padding(
-                              //   padding: const EdgeInsets.all(8.0),
-                              //   child: Row(
-                              //     mainAxisAlignment: MainAxisAlignment.center,
-                              //     children: [
-                              //       const Icon(Icons.phone),
-                              //       Text(
-                              //         item['tel'].toString(),
-                              //         softWrap: true,
-                              //         style: TextStyle(color: Colors.grey[700]),
-                              //       ),
-                              //     ],
-                              //   ),
-                              // ),
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     const Icon(Icons.area_chart),
-                                    Text(
-                                      item['growing_area'].toString() + ' ไร่',
-                                      style: TextStyle(color: Colors.grey[700]),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Text(
+                                        item['growing_area'].toString() +
+                                            ' ไร่',
+                                        style:
+                                            TextStyle(color: Colors.grey[700]),
+                                      ),
                                     ),
                                   ],
                                 ),

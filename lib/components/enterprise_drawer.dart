@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../screens/enterprise_page.dart';
-import '../screens/member_page.dart';
+import '../screens/enterprise/enterprise_page.dart';
+import '../screens/enterprise/enterprise_member.dart';
 
 Drawer createEnterpriseDrawer(
     BuildContext context, String username, String entname) {
@@ -63,7 +63,10 @@ DrawerHeader createEnterpriseDrawerHeader(String username, String entname) {
         Positioned(
           bottom: 12.0,
           left: 16.0,
-          child: Text('กลุ่มที่ดูแล: $entname'),
+          child: Text(
+            'กลุ่มที่ดูแล: $entname',
+            softWrap: true,
+          ),
         ),
       ],
     ),

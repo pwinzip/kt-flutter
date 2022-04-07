@@ -1,16 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:ktmobileapp/services/backend_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:intl/intl.dart';
 
-import '../components/farmer_drawer.dart';
-import '../services/auth_service.dart';
-import 'login_page.dart';
+import '../../components/farmer_drawer.dart';
+import '../../services/auth_service.dart';
+import '../login_page.dart';
 
 class FarmerPage extends StatefulWidget {
   const FarmerPage({Key? key}) : super(key: key);
@@ -41,25 +40,13 @@ class _FarmerPageState extends State<FarmerPage> {
   Future<void> getSharedPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      // _id = prefs.getInt('userid')!;
       _username = prefs.getString("username")!;
       _farmerid = prefs.getInt('farmerid')!;
       _enterprisename = prefs.getString("enterprisename")!;
       _agentname = prefs.getString("agentname")!;
       _token = prefs.getString("token")!;
     });
-    await getPlantInfo();
-  }
-
-  Future<void> getPlantInfo() async {
-    var url = Uri.parse(apiURL + 'farmerinfo/$_farmerid');
-
-    var response = await http
-        .get(url, headers: {HttpHeaders.contentTypeHeader: 'application/json'});
-
-    print(response.statusCode);
-    print(response.body);
-
+    var response = await getPlantAmount(_farmerid, _token);
     setState(() {
       _remainPlants = jsonDecode(response.body)['remain'].toString();
       _addonPlants = jsonDecode(response.body)['addon'].toString();
@@ -110,7 +97,7 @@ class _FarmerPageState extends State<FarmerPage> {
           createFarmerDrawer(context, _username, _enterprisename, _agentname),
       body: Center(
         child: Container(
-          width: MediaQuery.of(context).size.width * 0.85,
+          width: MediaQuery.of(context).size.width * 0.9,
           margin: const EdgeInsets.all(8),
           child: isLoading
               ? const Text('loading')
@@ -169,7 +156,7 @@ class _FarmerPageState extends State<FarmerPage> {
     return Card(
       color: Colors.green[100],
       child: Container(
-        width: 180,
+        width: 150,
         height: 120,
         padding: const EdgeInsets.all(8),
         child: Column(
@@ -364,17 +351,13 @@ class _FarmerPageState extends State<FarmerPage> {
               "expectedAmount": _expectedAmount.text,
             });
 
-            var url = Uri.parse(apiURL + 'plants/$_farmerid');
-
-            var response = await http.post(url,
-                body: json,
-                headers: {HttpHeaders.contentTypeHeader: 'application/json'});
+            var response = await saveFarmerPlant(json, _farmerid, _token);
 
             print(response.statusCode);
 
             if (response.statusCode == 200) {
               print("successful");
-              // redirect to show plant
+              setState(() {});
             }
           }
         },

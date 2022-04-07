@@ -8,9 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:intl/intl.dart';
 
-import '../components/enterprise_drawer.dart';
-import '../services/auth_service.dart';
-import 'login_page.dart';
+import '../../components/enterprise_drawer.dart';
+import '../../services/auth_service.dart';
+import '../login_page.dart';
 
 class EnterprisePage extends StatefulWidget {
   const EnterprisePage({Key? key}) : super(key: key);
@@ -102,7 +102,7 @@ class _EnterprisePageState extends State<EnterprisePage> {
       body: SingleChildScrollView(
         child: Center(
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.85,
+            width: MediaQuery.of(context).size.width * 0.9,
             margin: const EdgeInsets.all(8),
             child: Column(
               children: [
@@ -239,11 +239,11 @@ class _EnterprisePageState extends State<EnterprisePage> {
     return Card(
       color: color,
       child: Container(
-        width: 180,
+        width: 155,
         height: 120,
         padding: const EdgeInsets.all(8),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Text(str,
                 style: TextStyle(

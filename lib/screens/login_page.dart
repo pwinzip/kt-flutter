@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:ktmobileapp/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'admin_page.dart';
-import 'enterprise_page.dart';
-import 'farmer_page.dart';
+import 'admin/admin_page.dart';
+import 'enterprise/enterprise_page.dart';
+import 'farmer/farmer_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);

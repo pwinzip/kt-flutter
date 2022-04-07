@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ktmobileapp/screens/farmer/farmer_page.dart';
 
-import '../screens/plant_page.dart';
+import '../screens/farmer/plant_page.dart';
 
 Drawer createFarmerDrawer(BuildContext context, String username,
     String enterprisename, String agentname) {
@@ -12,7 +13,13 @@ Drawer createFarmerDrawer(BuildContext context, String username,
         ListTile(
           leading: const Icon(Icons.local_florist),
           title: const Text('บันทึกการปลูก'),
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FarmerPage(),
+                ));
+          },
         ),
         ListTile(
           leading: const Icon(Icons.library_books_outlined),
@@ -46,7 +53,10 @@ DrawerHeader createFarmerDrawerHeader(
         Positioned(
           bottom: 36.0,
           left: 16.0,
-          child: Text('กลุ่มที่สังกัด: $enterprisename'),
+          child: Text(
+            'กลุ่มที่สังกัด: $enterprisename',
+            softWrap: true,
+          ),
         ),
         Positioned(
           bottom: 12.0,
