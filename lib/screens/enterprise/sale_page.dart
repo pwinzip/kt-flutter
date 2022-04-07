@@ -40,6 +40,7 @@ class _SalePageState extends State<SalePage> {
 
     var response = await http.get(url, headers: {
       HttpHeaders.contentTypeHeader: 'application/json',
+      HttpHeaders.authorizationHeader: 'Bearer $_token',
     });
 
     print(response.statusCode);

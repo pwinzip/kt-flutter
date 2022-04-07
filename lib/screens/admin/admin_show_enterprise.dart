@@ -114,7 +114,9 @@ class _AdminShowEnterpriseState extends State<AdminShowEnterprise> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AdminAddEnterprise(),
-                  ));
+                  )).then((value) {
+                setState(() {});
+              });
             },
             child: Row(
               children: const [

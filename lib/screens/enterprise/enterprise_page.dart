@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:ktmobileapp/services/backend_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
@@ -24,13 +22,13 @@ class _EnterprisePageState extends State<EnterprisePage> {
   final TextEditingController _saleDate = TextEditingController();
   final TextEditingController _saleAmount = TextEditingController();
 
-  late String _username;
-  late String _entname;
-  late int _entid;
-  late String _token;
+  String? _username;
+  String? _entname;
+  int? _entid;
+  String? _token;
 
-  String? plants;
-  String? members;
+  String? _plants;
+  String? _members;
 
   bool isLoading = true;
 
@@ -42,17 +40,16 @@ class _EnterprisePageState extends State<EnterprisePage> {
       _entid = prefs.getInt("enterpriseid")!;
       _token = prefs.getString("token")!;
     });
-    // Get member and plant belongs to the enterprise
-
-    // Set _plants and _ members
+    var response = await getCountPlantFarmer(_entid, _token!);
+    setState(() {
+      _members = jsonDecode(response.body)['farmers'].toString();
+      _plants = jsonDecode(response.body)['plants'].toString();
+      isLoading = false;
+    });
   }
 
-  Future<String?> getSales() async {
-    var url = Uri.parse(apiURL + 'sales/$_entid');
-
-    var response = await http.get(url, headers: {
-      HttpHeaders.contentTypeHeader: 'application/json',
-    });
+  Future<String?> getSalesList() async {
+    var response = await getSales(_entid, _token!);
 
     print(response.statusCode);
 
@@ -85,7 +82,7 @@ class _EnterprisePageState extends State<EnterprisePage> {
             },
             onSelected: (value) async {
               if (value == 2) {
-                var response = await logout(_token);
+                var response = await logout(_token!);
                 if (response.statusCode == 200) {
                   Navigator.push(
                       context,
@@ -98,34 +95,48 @@ class _EnterprisePageState extends State<EnterprisePage> {
           ),
         ],
       ),
-      drawer: createEnterpriseDrawer(context, _username, _entname),
+      drawer: createEnterpriseDrawer(context, _username!, _entname!),
       body: SingleChildScrollView(
         child: Center(
           child: Container(
             width: MediaQuery.of(context).size.width * 0.9,
             margin: const EdgeInsets.all(8),
-            child: Column(
-              children: [
-                summaryCard(),
-                inputForm(),
-                saveForm(),
-                const Divider(),
-                const SizedBox(height: 8),
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      'รายการแจ้งความต้องการขาย',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
+            child: isLoading
+                ? Column(
+                    children: const [
+                      SizedBox(
+                        child: CircularProgressIndicator(),
+                        width: 60,
+                        height: 60,
                       ),
-                    ),
+                      Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: Text('อยู่ระหว่างประมวลผล'),
+                      )
+                    ],
+                  )
+                : Column(
+                    children: [
+                      summaryCard(),
+                      inputForm(),
+                      saveForm(),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text(
+                            'รายการแจ้งความต้องการขาย',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      showSaleList(),
+                    ],
                   ),
-                ),
-                showSaleList(),
-              ],
-            ),
           ),
         ),
       ),
@@ -134,7 +145,7 @@ class _EnterprisePageState extends State<EnterprisePage> {
 
   Widget showSaleList() {
     return FutureBuilder(
-      future: getSales(),
+      future: getSalesList(),
       builder: (context, snapshot) {
         List<Widget> myList = [];
 
@@ -162,7 +173,7 @@ class _EnterprisePageState extends State<EnterprisePage> {
                   DateTime parsedCreatedDate =
                       DateTime.parse(item['created_at']);
                   DateTime parsedSellDate =
-                      DateTime.parse(item['date_for_sell']);
+                      DateTime.parse(item['date_for_sale']);
                   var createdDate =
                       DateFormat('dd/MM/yyyy').format(parsedCreatedDate);
                   var sellDate =
@@ -185,7 +196,7 @@ class _EnterprisePageState extends State<EnterprisePage> {
                             Column(
                               children: [
                                 const Text('จำนวนที่ต้องการขาย'),
-                                Text(item['quantity_for_sell'].toString() +
+                                Text(item['quantity_for_sale'].toString() +
                                     ' กิโลกรัม'),
                               ],
                             ),
@@ -227,9 +238,9 @@ class _EnterprisePageState extends State<EnterprisePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          enterpriseCard('จำนวนสมาชิก', 50.toString(), 'คน', Colors.blue[200]),
+          enterpriseCard('จำนวนสมาชิก', _members, 'คน', Colors.blue[200]),
           enterpriseCard(
-              'จำนวนต้นกระท่อม', 130.toString(), 'ต้น', Colors.lightGreen[100]),
+              'จำนวนต้นกระท่อม', _plants, 'ต้น', Colors.lightGreen[100]),
         ],
       ),
     );
@@ -432,12 +443,12 @@ class _EnterprisePageState extends State<EnterprisePage> {
               "saleAmount": _saleAmount.text,
             });
 
-            var url = Uri.parse(apiURL + 'addsales/$_entid');
-
-            var response = await http.post(url, body: json, headers: {
-              HttpHeaders.contentTypeHeader: "application/json",
-            });
+            var response = await addSale(json, _entid, _token!);
             print(response.statusCode);
+            if (response.statusCode == 200) {
+              print("New Sale Added");
+              setState(() {});
+            }
           }
         },
       ),

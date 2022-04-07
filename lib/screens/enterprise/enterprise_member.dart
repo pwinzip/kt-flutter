@@ -35,12 +35,8 @@ class _MemberPageState extends State<MemberPage> {
     });
   }
 
-  Future<String?> getMembers() async {
-    var url = Uri.parse(apiURL + 'members/$_entid');
-
-    var response = await http.get(url, headers: {
-      HttpHeaders.contentTypeHeader: 'application/json',
-    });
+  Future<String?> getMembersList() async {
+    var response = await getMembers(_entid, _token);
 
     if (response.statusCode == 200) {
       return response.body;
@@ -91,13 +87,14 @@ class _MemberPageState extends State<MemberPage> {
 
   showMemberList() {
     return FutureBuilder(
-      future: getMembers(),
+      future: getMembersList(),
       builder: (context, snapshot) {
         List<Widget> myList = [];
 
         if (snapshot.hasData) {
           var jsonString = jsonDecode(snapshot.data.toString());
           List? farmers = jsonString['payload'];
+          print(snapshot.data.toString());
           myList = [
             Column(
               children: farmers!.map((item) {
@@ -177,8 +174,24 @@ class _MemberPageState extends State<MemberPage> {
                                     Padding(
                                       padding: const EdgeInsets.only(left: 8.0),
                                       child: Text(
-                                        item['growing_area'].toString() +
-                                            ' ไร่',
+                                        item['area'].toString() + ' ไร่',
+                                        style:
+                                            TextStyle(color: Colors.grey[700]),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.local_florist_outlined),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Text(
+                                        item['remain'].toString() + ' ต้น',
                                         style:
                                             TextStyle(color: Colors.grey[700]),
                                       ),

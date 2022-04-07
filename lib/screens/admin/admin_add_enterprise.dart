@@ -290,31 +290,13 @@ class _AdminAddEnterpriseState extends State<AdminAddEnterprise> {
               "agentPassword": _entAgentPassword.text,
               "isActive": _entStatus ? 1 : 0,
             });
-
-            print(json);
-
             var response = await addEnterprise(json, _token);
             print(response.statusCode);
 
             if (response.statusCode == 200) {
               print("successful");
               Navigator.pop(context);
-            } else if (response.statusCode == 422) {
-              print("Regist No already exists");
             }
-
-            // var url = Uri.parse(apiURL + 'plants/$_farmerid');
-
-            // var response = await http.post(url,
-            //     body: json,
-            //     headers: {HttpHeaders.contentTypeHeader: 'application/json'});
-
-            // print(response.statusCode);
-
-            // if (response.statusCode == 200) {
-            //   print("successful");
-            //   // redirect to show plant
-            // }
           }
         },
       ),
